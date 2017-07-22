@@ -20,7 +20,7 @@ connection.connect(function(err) {
   	console.log("connected as id " + connection.threadId);
  	
  	displayInventory();
- 	buyItems();
+ 	
 });
 
 
@@ -54,6 +54,7 @@ function displayInventory(){
 		}
 
 		console.log(table.toString());
+		buyItems();
 	
 	});
 	//connection.end();
