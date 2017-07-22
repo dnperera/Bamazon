@@ -142,7 +142,7 @@ inquirer.prompt([
 	  message: "------------- Welcome to The Bamazon BackEnd Module -----------------------\n"+
 	  		"Please select one of the options bellow using arrow keys\n "+
 	  		"and then press enter to continue !.\n",
-	  choices: ["View Products for Sale", "View Low Inventory", "Add to Inventory","Add New Product"],
+	  choices: ["View Products for Sale", "View Low Inventory", "Add to Inventory","Add New Product","Exit"],
 	  name: "userRequest"
 	}
 
@@ -165,6 +165,10 @@ inquirer.prompt([
 		case "Add New Product" :
 			addNewProduct();
 			break;
+		case "Exit" :
+			connection.end();
+			break;
+
 	}
 
 });
