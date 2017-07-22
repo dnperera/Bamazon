@@ -1,7 +1,7 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 var Table = require('cli-table');
-
+var clc = require('cli-color');
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -26,31 +26,35 @@ connection.connect(function(err) {
 
 function displayInventory(){
 
+	var tableHead = clc.xterm(16).bold;
+	var idColor =  clc.xterm(12).bold;
+	var quantColor = clc.xterm(28).bold;
+
 	connection.query("SELECT * FROM products", function(err, res) {
 		if(err) throw err;
 
 		var table = new Table({
-		    head: ['Prodcut ID', 'Product Name','Department','Unit Price','Quantity in Stock']
+		    head: [tableHead('Prodcut ID'), tableHead('Product Name'),tableHead('Department'),tableHead('Unit Price'),tableHead('Quantity in Stock')]
 		  
 		});
 
 		for (var i = 0; i < res.length; i++) {
-			//console.log(res[i].item_id + " | " + res[i].product_name + " | " + res[i].department_name + " | " + res[i].price +" | "+res[i].stock_quantity);
+			
 			var availQuant ="";
 			
 			if(res[i].stock_quantity === 0){
 
-				availQuant = "Out of stock";
+				availQuant = clc.xterm(9).bold.blink("Out of stock");
 			}
 			else{
 				availQuant = res[i].stock_quantity;
 			}
 
-			table.push([res[i].item_id,
+			table.push([idColor(res[i].item_id),
 				res[i].product_name,
 				res[i].department_name,
-				res[i].price,
-				availQuant]);
+				"$"+res[i].price,
+				quantColor(availQuant)]);
 		}
 
 		console.log(table.toString());
@@ -76,53 +80,71 @@ function buyItems() {
 		var productID = answers['productID'].trim();
 		var quantity = answers['quantity'].trim();
 
-		//get the current stock details from the DB of the selected item
-		connection.query("SELECT * FROM products WHERE ?",{ item_id:productID}, function(err, res) {
-		if(err) throw err;
+		//check value are not empty
+		if(productID != "" && quantity !=""){
+			console.log(isNaN(productID));
+			console.log(isNaN(quantity));
 			
-			if(res[0].stock_quantity >= quantity ){
-				var Total = res[0].price*quantity;
-				var name = res[0].product_name;
+			if(!isNaN(productID) && !isNaN(quantity)){
+				//get the current stock details from the DB of the selected item
+				connection.query("SELECT * FROM products WHERE ?",{ item_id:productID}, function(err, res) {
+				if(err) throw err;
+					
+					if(res[0].stock_quantity >= quantity ){
+						var Total = res[0].price*quantity;
+						var name = res[0].product_name;
 
-				var currentStock = res[0].stock_quantity - quantity;
+						var currentStock = res[0].stock_quantity - quantity;
 
-				//update the db with current stock value;
-				connection.query(
-				  "UPDATE products SET ? WHERE ?",
-				  [
-				    {
-				      stock_quantity:currentStock
-				    },
-				    {
-				      item_id:productID
-				    }
-				  ],
-				  function(err, res) {
-				  	
-				  	if(err) throw err;
+						//update the db with current stock value;
+						connection.query(
+						  "UPDATE products SET ? WHERE ?",
+						  [
+						    {
+						      stock_quantity:currentStock
+						    },
+						    {
+						      item_id:productID
+						    }
+						  ],
+						  function(err, res) {
+						  	
+						  	if(err) throw err;
 
-				    console.log("--------------- Invoice ----------------- \n");
-				    console.log("Product Name : "+name+"\n");
-				    console.log("Number of Items : "+quantity+"\n");
-				    console.log("Grand Total : $"+Total.toFixed(2)+"\n");
-				    console.log("--------------------------------------- \n");
+						    console.log(clc.xterm(28).bold("-------------------------------- Invoice ---------------------------------------- \n"));
+						    console.log(clc.xterm(16).bold("Product Name : ")+name+"\n");
+						    console.log(clc.xterm(16).bold("Number of Items : ")+quantity+"\n");
+						    console.log(clc.xterm(16).bold("Grand Total :")+clc.xterm(9).bold("$"+Total.toFixed(2))+"\n");
+						    console.log(clc.xterm(28).bold("----------------------------------------------------------------------------------- \n"));
 
-				    // Call deleteProduct AFTER the UPDATE completes
-				     displayInventory();
-				     connection.end();
-				  }
-				);
+						    // Call deleteProduct AFTER the UPDATE completes
+						     displayInventory();
+						     //connection.end();
+						  }
+						);
 
+					}
+					else {
+						console.log(clc.xterm(91).bold("------------------------------------------------------------\n"));
+						console.log(clc.xterm(9).bold.blink("Insufficient quantity in stock !\n"));
+						console.log(clc.xterm(16).bold("Try to lower the quantity or try different product.!\n"));
+						console.log(clc.xterm(91).bold("------------------------------------------------------------\n"));
+
+						buyItems();
+					}
+				});
 			}
-			else {
-				console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-				console.log('Insufficient quantity in stock !\n');
-				console.log('Try to lower the quantity or try different product.!\n');
-				console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-
+			else{
+				//if the input values are invalid
 				buyItems();
-			}
-		});
+			}			
+		}
+		else{
+			//if the input values are blanks
+			buyItems();
+
+		} //--- End  if(productID != "" && quantity !=""){
+
 	});
 }
 
